@@ -6,32 +6,34 @@ use std::{
 };
 
 use clap::Parser;
+use log::info;
 use threadpool::ThreadPool;
 use uuid::Uuid;
 
 use crate::{
-    args::Args, bucket_list::BucketList, diff::Diff, heap::HeapItem, player::Player,
+    args::Args,
+    bucket::{bucket_diff::PlayerBucketDiff, bucket_list::BucketList},
+    heap::HeapItem,
+    player::Player,
     util::players_from_ratings,
 };
 
 mod args;
 mod bucket;
-mod bucket_list;
-mod diff;
 mod heap;
 mod player;
 mod util;
 
 fn main() -> Result<(), io::Error> {
-    let args = Args::parse();
+    env_logger::init();
 
+    let args = Args::parse();
     let dataset_path = args.dataset_path;
     let score_output_path = args.score_output_path;
     let num_threads = args.threads;
+    let score_output_file = Arc::new(Mutex::new(File::create(score_output_path).unwrap()));
 
-    let output_file = Arc::new(Mutex::new(File::create(score_output_path).unwrap()));
-
-    let diff = Diff::new(15_000);
+    let diff = PlayerBucketDiff::new(15_000);
 
     let file = File::open(dataset_path)?;
     let reader = io::BufReader::new(file);
@@ -73,13 +75,15 @@ fn main() -> Result<(), io::Error> {
 
         if line_num == 0 {
             main_lobby = players_from_ratings(&nums);
+
+            println!("Current team: {:#?}", main_lobby);
         } else {
             let nums = nums.clone();
             let heap = Arc::clone(&heap);
             let bucket_list = Arc::clone(&bucket_list);
             let tx = tx.clone(); // signal completion
             let main_lobby = main_lobby.clone(); // assuming this is Clone
-            let output_file = Arc::clone(&output_file);
+            let output_file = Arc::clone(&score_output_file);
 
             pool.execute(move || {
                 let mut output_file = output_file.lock().expect("Could not acquire output file");
@@ -119,8 +123,8 @@ fn main() -> Result<(), io::Error> {
         let heap = heap.lock().unwrap();
         let lobbies = heap.clone().into_sorted_vec();
 
-        println!(); // For Row prints
-        println!("Matches: {:#?}", lobbies);
+        println!(); // for row prints before this
+        info!("Matches: {:#?}", lobbies);
     }
 
     Ok(())

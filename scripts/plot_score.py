@@ -1,10 +1,14 @@
+import os
 import re
+from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import FuncFormatter
 
+INPUT_FILE = os.getenv("OUTPUT_FILE", "scores.txt")
 
-def parse_scores(file_path):
+
+def parse_scores(file_path: str) -> List[int]:
     scores = []
     with open(file_path, "r") as file:
         for line in file:
@@ -16,7 +20,7 @@ def parse_scores(file_path):
     return np.array(scores)
 
 
-def plot_log_transformed_histogram(scores, num_bins=100):
+def plot_log_transformed_histogram(scores: List[int], num_bins=100):
     # Transform the scores to compress the right tail and make it more symmetric
     transformed_scores = np.log1p(scores)  # log(1 + x), safe for 0
 
@@ -25,7 +29,6 @@ def plot_log_transformed_histogram(scores, num_bins=100):
 
     bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
 
-    # Plot histogram
     plt.figure(figsize=(10, 6))
     plt.bar(
         bin_centers,
@@ -53,6 +56,5 @@ def plot_log_transformed_histogram(scores, num_bins=100):
 
 
 if __name__ == "__main__":
-    file_path = "scores.txt"
-    scores = parse_scores(file_path)
+    scores = parse_scores(INPUT_FILE)
     plot_log_transformed_histogram(scores)

@@ -1,16 +1,21 @@
 use std::fmt::Debug;
 
-use crate::{bucket::Bucket, diff::Diff, player::Player};
+use log::debug;
+
+use crate::{
+    bucket::{Bucket, bucket_diff::PlayerBucketDiff},
+    player::Player,
+};
 
 #[derive(Debug)]
 pub struct BucketList {
-    diff: Diff,
+    diff: PlayerBucketDiff,
     mean: u16,
     buckets: Option<[Bucket; 30]>,
 }
 
 impl BucketList {
-    pub fn new(diff: Diff, mean: u16) -> BucketList {
+    pub fn new(diff: PlayerBucketDiff, mean: u16) -> BucketList {
         BucketList {
             diff,
             mean,
@@ -27,6 +32,8 @@ impl BucketList {
     }
 
     fn prepare_buckets(&mut self) {
+        debug!("Preparing player buckets.");
+
         let mut buckets = [Bucket::new(0, 0); 30];
 
         let mut dist_from_centre: u16 = 0;
@@ -43,6 +50,7 @@ impl BucketList {
             dist_from_centre += 1;
         }
 
+        debug!("Buckets: {:#?}", buckets);
         self.buckets = Some(buckets);
     }
 
@@ -72,9 +80,6 @@ impl BucketList {
             .iter()
             .map(|&player| self.get_index(player.rating()))
             .collect();
-
-        // println!("Lobby 1 Bucket Index: {:#?}", lobby1_bucket_idxs);
-        // println!("Lobby 2 Bucket Index: {:#?}", lobby2_bucket_idxs);
 
         let mut available: Vec<usize> = (0..lobby1_bucket_idxs.len()).collect();
         let mut pair_bucket_diffs: Vec<f64> = Vec::new();
@@ -131,11 +136,6 @@ impl BucketList {
                     })
                     .unwrap()
             };
-
-            // println!(
-            //     "Pair: ({:?}, {:?}), Bucket Difference: {}",
-            //     lobby1[i], lobby2[best_j], min_bucket_diff
-            // );
 
             pair_bucket_diffs.push((min_bucket_diff * min_bucket_diff) as f64);
             available.retain(|&x| x != best_j);

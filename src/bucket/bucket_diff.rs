@@ -1,48 +1,42 @@
 use std::fmt::Debug;
 
+use log::debug;
+
 #[derive(Clone, Copy)]
-pub struct Diff {
+pub struct PlayerBucketDiff {
     total: u16,
     index: usize,
-    _base: [u16; 15],
-    _scaled: [f64; 15],
-    rounded: [u16; 15],
-    done: bool,
+    bucket_edges: [u16; 15],
 }
 
-impl Debug for Diff {
+impl Debug for PlayerBucketDiff {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Diff")
+        f.debug_struct("Player Bucket Diff")
             .field("total", &self.total)
             .field("index", &self.index)
-            .field("done", &self.done)
             .finish()
     }
 }
 
-impl Diff {
+impl PlayerBucketDiff {
     pub fn new(total: u16) -> Self {
-        let base: [u16; 15] = std::array::from_fn(|i| (i + 1) as u16); // [1, 2, ..., 15]
-        let base_sum: u16 = base.iter().sum();
+        let base: [u16; 15] = std::array::from_fn(|i| (i + 1) as u16);
+        let base_total_sum: u16 = base.iter().sum();
 
-        // Step 1: Compute scaled values
-        let mut scaled = [0.0; 15];
-        for i in 0..15 {
-            scaled[i] = (total as f64) * (base[i] as f64) / (base_sum as f64);
-        }
-
-        // Step 2: Round and compute sum
-        let mut rounded = [0u16; 15];
         let mut int_sum = 0u16;
+        let mut bucket_edges = [0u16; 15];
         for i in 0..15 {
-            rounded[i] = scaled[i].round() as u16;
-            int_sum += rounded[i];
+            bucket_edges[i] =
+                ((total as f64) * (base[i] as f64) / (base_total_sum as f64)).round() as u16;
+            int_sum += bucket_edges[i];
         }
+
+        debug!("Bucket edges: {:?}", bucket_edges);
 
         // Step 3: Fix rounding error
         let mut diff = int_sum as i32 - total as i32;
         if diff != 0 {
-            let last = &mut rounded[14];
+            let last = &mut bucket_edges[14];
             if *last as i32 - diff >= 0 {
                 *last = (*last as i32 - diff) as u16;
             } else {
@@ -54,8 +48,8 @@ impl Diff {
                     if diff == 0 {
                         break;
                     }
-                    let take = std::cmp::min(diff, rounded[i] as i32);
-                    rounded[i] -= take as u16;
+                    let take = std::cmp::min(diff, bucket_edges[i] as i32);
+                    bucket_edges[i] -= take as u16;
                     diff -= take;
                 }
             }
@@ -64,15 +58,12 @@ impl Diff {
         Self {
             total,
             index: 0,
-            _base: base,
-            _scaled: scaled,
-            rounded,
-            done: false,
+            bucket_edges,
         }
     }
 }
 
-impl Iterator for Diff {
+impl Iterator for PlayerBucketDiff {
     type Item = u16;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -80,7 +71,7 @@ impl Iterator for Diff {
             return None;
         }
 
-        let value = self.rounded[self.index];
+        let value = self.bucket_edges[self.index];
         self.index += 1;
 
         Some(value)
