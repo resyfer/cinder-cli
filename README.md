@@ -28,3 +28,5 @@ cd scripts
 python plot_score.py
 cd ..
 ```
+
+<img width="995" height="594" alt="image" src="https://github.com/user-attachments/assets/6785fa06-e3df-4d95-b9c8-edf89e22fbab" />
