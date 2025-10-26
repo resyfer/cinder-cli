@@ -38,7 +38,7 @@ fn main() -> Result<(), io::Error> {
     let file = File::open(dataset_path)?;
     let reader = io::BufReader::new(file);
 
-    let mut main_lobby = [Player::new(Uuid::new_v4(), 0); 5];
+    let mut searcher_lobby = [Player::new(Uuid::new_v4(), 0); 5];
 
     let heap_max_size = 5;
 
@@ -74,23 +74,23 @@ fn main() -> Result<(), io::Error> {
         }
 
         if line_num == 0 {
-            main_lobby = players_from_ratings(&nums);
+            searcher_lobby = players_from_ratings(&nums);
 
-            println!("Current team: {:#?}", main_lobby);
+            println!("Current team: {:#?}", searcher_lobby);
         } else {
             let nums = nums.clone();
             let heap = Arc::clone(&heap);
             let bucket_list = Arc::clone(&bucket_list);
             let tx = tx.clone(); // signal completion
-            let main_lobby = main_lobby.clone(); // assuming this is Clone
+            let searcher_lobby = searcher_lobby.clone(); // assuming this is Clone
             let output_file = Arc::clone(&score_output_file);
 
             pool.execute(move || {
                 let mut output_file = output_file.lock().expect("Could not acquire output file");
-                let lobby = players_from_ratings(&nums);
+                let waiting_lobby = players_from_ratings(&nums);
 
                 let mut bucket_list = bucket_list.lock().expect("Could not acquire bucket list");
-                let sanction_score = bucket_list.bucket_diff(main_lobby, lobby);
+                let sanction_score = bucket_list.bucket_diff(searcher_lobby, waiting_lobby);
 
                 let _ = output_file.write_all(format!("{}\n", sanction_score).as_bytes());
 
@@ -99,7 +99,7 @@ fn main() -> Result<(), io::Error> {
 
                 // Insert into heap if better than existing
 
-                let heap_item = HeapItem::new(sanction_score, lobby);
+                let heap_item = HeapItem::new(sanction_score, waiting_lobby);
                 let mut heap = heap.lock().expect("Could not acquire heap");
 
                 if heap.len() < heap_max_size {

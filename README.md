@@ -16,10 +16,10 @@ cd ..
 
 ```sh
 cargo install --path .
-cargo run -- -d scripts/dataset.txt -s scripts/scores.txt
+RUST_LOG=debug cargo run -- -d scripts/dataset.txt -s scripts/scores.txt
 ```
 
-NOTE: The program take the first line of the dataset as the lobby of players, henceforth called searcher lobby, wishing to find their "sanction score" against the other lobbies, henceforth called the waiting lobbies. The sanction score quantifies the disparity between the searcher lobby and waiting lobbies.
+NOTE: The program take the first line of the dataset as the lobby of players, henceforth called searcher lobby, wishing to find their "sanction score" against the other lobbies, henceforth called the waiting lobbies. The sanction score quantifies the disparity between the searcher lobby and waiting lobbies. It then outputs the top 5 matches for the searcher lobby among the waiting lobbies.
 
 ## Prepare the graph plots
 
